@@ -8,6 +8,7 @@ window.I18N = {
     role_company:"受入れ企業", role_company_d:"自社の候補者",
     selectUser:"ユーザー", selectCompany:"企業", password:"パスワード（任意・デモ）",
     enter:"入る", demoMode:"デモモード（サンプルデータ）", liveMode:"本番モード（Supabase接続済）",
+    email:"メールアドレス", login_admincorp:"管理者・企業", login_self:"本人（コード）", login_code:"ログインコード", login_failed:"ログインに失敗しました。入力をご確認ください。", login_noprofile:"アカウント設定が見つかりません。管理者にお問い合わせください。",
     logout:"ログアウト", back:"← 一覧へ戻る",
     // dashboards
     dash_overview:"全体ダッシュボード", dash_sub_yst:"SSW・外免切替・日本語学習の進捗を一元管理",
@@ -56,6 +57,7 @@ window.I18N = {
     role_company:"Perusahaan penerima", role_company_d:"Kandidat kami",
     selectUser:"Pengguna", selectCompany:"Perusahaan", password:"Kata sandi (opsional・demo)",
     enter:"Masuk", demoMode:"Mode demo (data contoh)", liveMode:"Mode live (terhubung Supabase)",
+    email:"Email", login_admincorp:"Admin・Perusahaan", login_self:"Diri sendiri (kode)", login_code:"Kode login", login_failed:"Gagal masuk. Mohon periksa kembali isian Anda.", login_noprofile:"Pengaturan akun tidak ditemukan. Hubungi admin.",
     logout:"Keluar", back:"← Kembali ke daftar",
     dash_overview:"Dasbor menyeluruh", dash_sub_yst:"Kelola progres SSW・konversi SIM・bahasa Jepang",
     dash_sub_fti:"Progres belajar sebelum berangkat (Bahasa Jepang・SSW・persiapan SIM)",

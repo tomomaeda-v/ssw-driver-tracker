@@ -33,7 +33,7 @@ function lastMock(l){ var m=(l&&l.mocks)||[]; return m.length?m[m.length-1]:null
 /* ============================================================
    LOGIN
    ============================================================ */
-async function renderLogin(){
+async function renderDemoLogin(){
   var companies = await DATA.getCompanies();
   var cands = await DATA.getCandidates();
   var live = DATA.isLive();
@@ -63,6 +63,42 @@ async function renderLogin(){
      '<div><span class="mode-badge '+(live?'mode-live':'mode-demo')+'">'+
         (live?T("liveMode"):T("demoMode"))+'</span></div>'+
    '</div></div>';
+}
+
+/* ---------- 認証ログイン（本番） ---------- */
+async function renderLogin(){
+  if(!DATA.isLive()) return renderDemoLogin();
+  var tab = STATE.authTab||'email';
+  var err = STATE.authError ? '<div class="login-err">'+esc(STATE.authError)+'</div>' : '';
+  var tabs = '<div class="auth-tabs">'+
+    '<button class="'+(tab==='email'?'on':'')+'" data-action="authtab" data-tab="email">'+T('login_admincorp')+'</button>'+
+    '<button class="'+(tab==='code'?'on':'')+'" data-action="authtab" data-tab="code">'+T('login_self')+'</button></div>';
+  var form;
+  if(tab==='email'){
+    form = '<div class="field"><label>'+T('email')+'</label><input id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com"></div>'+
+           '<div class="field"><label>'+T('password')+'</label><input id="loginPass" type="password" autocomplete="current-password"></div>'+
+           '<button class="btn-primary" data-action="authemail">'+T('enter')+'</button>';
+  } else {
+    form = '<div class="field"><label>'+T('login_code')+'</label><input id="loginCode" type="password" autocomplete="off" placeholder="••••••••"></div>'+
+           '<button class="btn-primary" data-action="authcode">'+T('enter')+'</button>';
+  }
+  APP.innerHTML =
+   '<div class="login-wrap"><div class="login-card">'+
+     '<h1>'+T('appName')+'</h1>'+
+     '<p class="sub">'+(window.APP_CONFIG.ORG_NAME||"")+'</p>'+
+     tabs + err + form +
+     '<div><span class="mode-badge mode-live">'+T('liveMode')+'</span></div>'+
+   '</div></div>';
+}
+async function afterLogin(){
+  var p = await DATA.getMyProfile();
+  if(!p){ STATE.authError = T('login_noprofile'); await DATA.authSignOut(); return renderLogin(); }
+  STATE.role = p.role;
+  STATE.companyId = p.company_id||null;
+  STATE.candidateId = p.candidate_id||null;
+  STATE.lang = (p.role==='fti'||p.role==='self') ? 'id' : 'ja';
+  STATE.authError = null; STATE.view = 'dashboard';
+  return render();
 }
 
 /* ============================================================
@@ -336,10 +372,16 @@ async function pushArray(id,key,arrField,item){
 APP.addEventListener("click", async function(e){
   var el=e.target.closest("[data-action]"); if(!el) return;
   var a=el.getAttribute("data-action");
+  if(a==="authtab"){ STATE.authTab=el.getAttribute("data-tab"); STATE.authError=null; return renderLogin(); }
+  if(a==="authemail"){ STATE.authError=null; var er=await DATA.authSignInEmail(val("loginEmail"), val("loginPass"));
+    if(er.error){ STATE.authError=T("login_failed"); return renderLogin(); } return afterLogin(); }
+  if(a==="authcode"){ STATE.authError=null; var ec=await DATA.authSignInCode(val("loginCode"));
+    if(ec.error){ STATE.authError=T("login_failed"); return renderLogin(); } return afterLogin(); }
   if(a==="role"){ STATE.role=el.getAttribute("data-role");
     STATE.lang = (STATE.role==="fti"||STATE.role==="self")?"id":"ja"; return renderLogin(); }
   if(a==="lang"){ STATE.lang=el.getAttribute("data-lang"); return render(); }
-  if(a==="logout"){ STATE.view="login"; STATE.role=null; STATE.detailId=null; STATE.modTab="overview"; return renderLogin(); }
+  if(a==="logout"){ if(DATA.isLive()) await DATA.authSignOut();
+    STATE.view="login"; STATE.role=null; STATE.detailId=null; STATE.companyId=null; STATE.candidateId=null; STATE.modTab="overview"; STATE.authError=null; return renderLogin(); }
   if(a==="login"){
     if(STATE.role==="self") STATE.candidateId=val("selUser");
     if(STATE.role==="company") STATE.companyId=val("selCompany");
@@ -376,4 +418,11 @@ APP.addEventListener("change", async function(e){
 });
 
 /* boot */
-render();
+async function boot(){
+  if(DATA.isLive()){
+    var sesh = await DATA.getSession();
+    if(sesh){ return afterLogin(); }
+  }
+  STATE.view="login"; return renderLogin();
+}
+boot();
