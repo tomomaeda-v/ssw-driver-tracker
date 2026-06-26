@@ -8,7 +8,7 @@ window.I18N = {
     role_company:"受入れ企業", role_company_d:"自社の候補者",
     selectUser:"ユーザー", selectCompany:"企業", password:"パスワード（任意・デモ）",
     enter:"入る", demoMode:"デモモード（サンプルデータ）", liveMode:"本番モード（Supabase接続済）",
-    email:"メールアドレス", login_admincorp:"管理者・企業", login_self:"本人（コード）", login_code:"ログインコード", login_failed:"ログインに失敗しました。入力をご確認ください。", login_noprofile:"アカウント設定が見つかりません。管理者にお問い合わせください。",
+    email:"メールアドレス", login_admincorp:"管理者・企業・学校", login_self:"本人（コード）", login_code:"ログインコード", login_failed:"ログインに失敗しました。入力をご確認ください。", login_noprofile:"アカウント設定が見つかりません。管理者にお問い合わせください。",
     logout:"ログアウト", back:"← 一覧へ戻る",
     // dashboards
     dash_overview:"全体ダッシュボード", dash_sub_yst:"SSW・外免切替・日本語学習の進捗を一元管理",
@@ -47,7 +47,19 @@ window.I18N = {
     add:"追加", save:"保存", date:"日付", note:"備考", score:"点数", total:"満点", freq_unit:"回/週",
     times_week:"回/週", minutes:"分", noData:"データがありません", select:"選択", yes:"あり", no:"なし",
     issue_banner:"⚠ 現場の重点課題: ① SSW未合格者の次回受験日・スコア管理 / ② 外免対策アプリの使用状況 / ③ 入国前の日本語授業 出席率管理",
-    update_done:"更新しました"
+    update_done:"更新しました",
+    role_school:"自動車学校", role_school_d:"外免・技能対策",
+    nav_dash:"ダッシュボード", nav_issues:"課題管理",
+    issues_title:"課題管理（PDCA）", issues_sub:"外免切替の課題と対策を YST・FTI・自動車学校 で共有し継続改善",
+    step1:"STEP① 事前審査", step2:"STEP② 学科試験", step3:"STEP③ 技能試験", step_future:"今後の重点課題", step_other:"その他",
+    issue_add:"課題を追加", issue_title:"課題", issue_content:"内容", issue_impact:"影響", issue_cm:"対策", issue_owner:"担当", issue_status:"状況", issue_updates:"改善ログ", issue_addupdate:"進捗を追加", issue_save:"保存",
+    st_new:"新規", st_doing:"対応中", st_done:"対応済", st_watch:"監視中",
+    lic_step1:"STEP① 事前審査（書類・深視力）", lic_docstatus:"書類審査", lic_docdefect:"書類不備（件）", lic_depth:"深視力", lic_depthretry:"深視力 再検査（回）",
+    lic_step2:"STEP② 学科試験（50問・45点で合格）", lic_written_attempts:"学科 受験履歴", lic_addwritten:"学科結果を追加", lic_score50:"点/50",
+    lic_step3:"STEP③ 技能試験（100点・70点で合格）", lic_skill_attempts:"技能 受験履歴", lic_addskill:"技能結果を追加", lic_points:"点/100", lic_failtags:"主な不合格理由（複数可）",
+    lic_final:"最終結果", fr_acquired:"免許取得", fr_giveup:"断念", fr_inprog:"進行中",
+    ft_gyakuso:"逆走", ft_sakamichi:"坂道後退", ft_dasharin:"脱輪(クランク/S字)", ft_sokudo:"速度不足", ft_ichiji:"一時停止不備", ft_gear:"ギア操作ミス", ft_kihon:"基本動作忘れ", ft_anzen:"安全不確認(目視)", ft_enst:"エンスト", ft_fumikiri:"踏切停止ミス",
+    fail_freq:"技能 失敗パターン頻度", vstat_ok:"OK", vstat_ng:"不備あり", vstat_pending:"未"
   },
   id:{
     appName:"Manajemen Progres Sopir SSW", login:"Masuk", selectRole:"Pilih peran",
@@ -57,7 +69,7 @@ window.I18N = {
     role_company:"Perusahaan penerima", role_company_d:"Kandidat kami",
     selectUser:"Pengguna", selectCompany:"Perusahaan", password:"Kata sandi (opsional・demo)",
     enter:"Masuk", demoMode:"Mode demo (data contoh)", liveMode:"Mode live (terhubung Supabase)",
-    email:"Email", login_admincorp:"Admin・Perusahaan", login_self:"Diri sendiri (kode)", login_code:"Kode login", login_failed:"Gagal masuk. Mohon periksa kembali isian Anda.", login_noprofile:"Pengaturan akun tidak ditemukan. Hubungi admin.",
+    email:"Email", login_admincorp:"Admin/Perusahaan/Sekolah", login_self:"Diri sendiri (kode)", login_code:"Kode login", login_failed:"Gagal masuk. Mohon periksa kembali isian Anda.", login_noprofile:"Pengaturan akun tidak ditemukan. Hubungi admin.",
     logout:"Keluar", back:"← Kembali ke daftar",
     dash_overview:"Dasbor menyeluruh", dash_sub_yst:"Kelola progres SSW・konversi SIM・bahasa Jepang",
     dash_sub_fti:"Progres belajar sebelum berangkat (Bahasa Jepang・SSW・persiapan SIM)",
@@ -86,7 +98,19 @@ window.I18N = {
     add:"Tambah", save:"Simpan", date:"Tanggal", note:"Catatan", score:"Nilai", total:"Maks", freq_unit:"x/minggu",
     times_week:"x/minggu", minutes:"menit", noData:"Tidak ada data", select:"Pilih", yes:"Ya", no:"Tidak",
     issue_banner:"⚠ Fokus utama: ① Tgl ujian & skor kandidat SSW belum lulus / ② Pemakaian aplikasi SIM / ③ Tingkat kehadiran kelas Bhs Jepang sebelum berangkat",
-    update_done:"Tersimpan"
+    update_done:"Tersimpan",
+    role_school:"Sekolah mengemudi", role_school_d:"SIM・ujian praktik",
+    nav_dash:"Dasbor", nav_issues:"Manajemen isu",
+    issues_title:"Manajemen Isu (PDCA)", issues_sub:"Berbagi & memperbaiki isu konversi SIM bersama YST・FTI・Sekolah mengemudi",
+    step1:"STEP① Pra-pemeriksaan", step2:"STEP② Ujian teori", step3:"STEP③ Ujian praktik", step_future:"Isu prioritas", step_other:"Lainnya",
+    issue_add:"Tambah isu", issue_title:"Isu", issue_content:"Isi", issue_impact:"Dampak", issue_cm:"Tindakan", issue_owner:"PIC", issue_status:"Status", issue_updates:"Log perbaikan", issue_addupdate:"Tambah progres", issue_save:"Simpan",
+    st_new:"Baru", st_doing:"Proses", st_done:"Selesai", st_watch:"Pantau",
+    lic_step1:"STEP① Pra-pemeriksaan (dokumen・penglihatan)", lic_docstatus:"Pemeriksaan dokumen", lic_docdefect:"Cacat dokumen (kali)", lic_depth:"Tes penglihatan jarak", lic_depthretry:"Tes ulang (kali)",
+    lic_step2:"STEP② Ujian teori (50 soal・lulus 45)", lic_written_attempts:"Riwayat ujian teori", lic_addwritten:"Tambah hasil teori", lic_score50:"poin/50",
+    lic_step3:"STEP③ Ujian praktik (100・lulus 70)", lic_skill_attempts:"Riwayat ujian praktik", lic_addskill:"Tambah hasil praktik", lic_points:"poin/100", lic_failtags:"Alasan tidak lulus (boleh banyak)",
+    lic_final:"Hasil akhir", fr_acquired:"SIM diperoleh", fr_giveup:"Menyerah", fr_inprog:"Berlangsung",
+    ft_gyakuso:"Lawan arah", ft_sakamichi:"Mundur tanjakan", ft_dasharin:"Keluar jalur(crank/S)", ft_sokudo:"Kurang kecepatan", ft_ichiji:"Stop tak penuh", ft_gear:"Salah gigi", ft_kihon:"Lupa dasar(sabuk)", ft_anzen:"Kurang cek aman", ft_enst:"Mesin mati", ft_fumikiri:"Stop rel kereta",
+    fail_freq:"Frekuensi pola gagal praktik", vstat_ok:"OK", vstat_ng:"Ada cacat", vstat_pending:"Belum"
   }
 };
 window.t = function(key){ var L=window.STATE&&window.STATE.lang||'ja'; return (I18N[L]&&I18N[L][key])||(I18N.ja[key])||key; };

@@ -5,6 +5,11 @@ window.STATE = { lang:"ja", role:null, user:null, companyId:null, candidateId:nu
                  view:"login", detailId:null, modTab:"overview" };
 var APP = document.getElementById("app");
 var T = window.t;
+var FAIL_TAGS=["gyakuso","sakamichi","dasharin","sokudo","ichiji","gear","kihon","anzen","enst","fumikiri"];
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function roleShort(){ return {yst:"YST",fti:"FTI",school:"自動車学校",company:"企業",self:"本人"}[STATE.role]||""; }
+function finalBadge(r){ if(r==="acquired") return '<span class="badge b-ok">'+T("fr_acquired")+'</span>'; if(r==="giveup") return '<span class="badge b-bad">'+T("fr_giveup")+'</span>'; if(r==="inprog") return '<span class="badge b-warn">'+T("fr_inprog")+'</span>'; return '<span class="badge b-neutral">'+T("notyet")+'</span>'; }
+function issueStatusBadge(st){ var m={"対応済":"b-ok","対応中":"b-warn","監視中":"b-neutral","新規":"b-info"}; return '<span class="badge '+(m[st]||"b-neutral")+'">'+esc(st)+'</span>'; }
 
 /* ---------- helpers ---------- */
 function esc(s){ s=(s==null?"":String(s)); return s.replace(/[&<>"']/g,function(m){
@@ -25,8 +30,10 @@ function sswBadge(s){
   return '<span class="badge b-neutral">'+T("notyet")+'</span>'; }
 function licBadge(l){
   if(!l) return '<span class="badge b-neutral">-</span>';
-  if(l.result==="done") return '<span class="badge b-ok">'+T("done")+'</span>';
-  if(l.result==="inprog") return '<span class="badge b-warn">'+T("inprog")+'</span>';
+  var r=l.final_result||l.result;
+  if(r==="acquired"||r==="done") return '<span class="badge b-ok">'+T("fr_acquired")+'</span>';
+  if(r==="giveup") return '<span class="badge b-bad">'+T("fr_giveup")+'</span>';
+  if(r==="inprog") return '<span class="badge b-warn">'+T("inprog")+'</span>';
   return '<span class="badge b-neutral">'+T("notyet")+'</span>'; }
 function lastMock(l){ var m=(l&&l.mocks)||[]; return m.length?m[m.length-1]:null; }
 
@@ -108,9 +115,16 @@ function shell(inner, head){
   var langBtns='<div class="lang">'+
     '<button class="'+(STATE.lang==="ja"?"on":"")+'" data-action="lang" data-lang="ja">日本語</button>'+
     '<button class="'+(STATE.lang==="id"?"on":"")+'" data-action="lang" data-lang="id">ID</button></div>';
-  var roleLabel = {yst:T("role_yst"),fti:T("role_fti"),self:T("role_self"),company:T("role_company")}[STATE.role];
+  var roleLabel = {yst:T("role_yst"),fti:T("role_fti"),self:T("role_self"),company:T("role_company"),school:T("role_school")}[STATE.role];
+  var nav="";
+  if(STATE.role==="yst"||STATE.role==="fti"||STATE.role==="school"){
+    var onDash=(STATE.view==="dashboard"||STATE.view==="detail");
+    nav='<div class="topnav">'+
+      '<button class="'+(onDash?"on":"")+'" data-action="gonav" data-view="dashboard">'+T("nav_dash")+'</button>'+
+      '<button class="'+(STATE.view==="issues"?"on":"")+'" data-action="gonav" data-view="issues">'+T("nav_issues")+'</button></div>';
+  }
   return '<div class="topbar"><span class="logo">🚚 '+T("appName")+'</span>'+
-      '<span class="role-tag">'+roleLabel+'</span><span class="spacer"></span>'+
+      '<span class="role-tag">'+roleLabel+'</span>'+nav+'<span class="spacer"></span>'+
       langBtns+'<button class="logout" data-action="logout">'+T("logout")+'</button></div>'+
     '<div class="container">'+(head||"")+inner+'</div>';
 }
@@ -152,7 +166,7 @@ async function renderDashboard(){
     return '<div class="kpi'+(k[3]?' alert':'')+'"><div class="k-label">'+T(k[0])+'</div>'+
       '<div class="k-val">'+k[1]+'</div><div class="k-sub">'+k[2]+'</div></div>';}).join("")+'</div>';
 
-  var banner = (role==="yst"||role==="fti") ? '<div class="hint">'+T("issue_banner")+'</div>' : '';
+  var banner = (role==="yst"||role==="fti"||role==="school") ? '<div class="hint">'+T("issue_banner")+'</div>' : '';
 
   // table rows
   var rows=cands.map(function(c){
@@ -192,7 +206,7 @@ async function renderDetail(){
   var c=await DATA.getCandidate(STATE.detailId);
   var companies=await DATA.getCompanies();
   if(!c){ STATE.view="dashboard"; return renderDashboard(); }
-  var canEdit = (STATE.role==="yst"||STATE.role==="fti");
+  var canEdit = (STATE.role==="yst"||STATE.role==="fti"||STATE.role==="school");
   var tabs=[["overview","mod_overview"],["ssw","mod_ssw"],["license","mod_license"],
             ["jp","mod_jp"],["proc","mod_proc"]];
   var tabHtml='<div class="mod-tabs">'+tabs.map(function(x){
@@ -259,46 +273,66 @@ function modSSW(c,canEdit){
     addForm+'</div>';
 }
 
-/* ---------- module: License (課題②) ---------- */
+/* ---------- module: 外免切替 (3STEP化・失敗タグ) ---------- */
 function modLicense(c,canEdit){
-  var l=c.license||{mocks:[]};
-  function inp(id,val,type){ return '<input '+(type?'type="'+type+'" ':'')+'id="'+id+'" value="'+esc(val||"")+'" '+
-     (canEdit?'data-action="lic_field" data-field="'+id+'"':'disabled')+' style="padding:6px 8px;border:1px solid var(--line);border-radius:8px">'; }
-  var dates='<dl class="kv">'+
-    '<dt>'+T("lic_app")+'</dt><dd>'+inp("application_date",l.application_date,"date")+'</dd>'+
-    '<dt>'+T("lic_written")+'</dt><dd>'+inp("written_date",l.written_date,"date")+'</dd>'+
-    '<dt>'+T("lic_skill")+'</dt><dd>'+inp("skill_date",l.skill_date,"date")+'</dd>'+
-    '<dt>'+T("lic_result")+'</dt><dd>'+ (canEdit?
-       '<select data-action="lic_field" data-field="result"><option value="notyet"'+(l.result==="notyet"?" selected":"")+'>'+T("notyet")+'</option>'+
-       '<option value="inprog"'+(l.result==="inprog"?" selected":"")+'>'+T("inprog")+'</option>'+
-       '<option value="done"'+(l.result==="done"?" selected":"")+'>'+T("done")+'</option></select>' : licBadge(l))+'</dd>'+
-   '</dl>';
-  // app usage card (課題②)
+  var l=c.license||{};
+  function sel(field,val,opts){ var o=opts.map(function(x){return '<option value="'+x[0]+'"'+(val===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join("");
+    if(!canEdit){ var f=opts.find(function(x){return x[0]===val;}); return f?esc(f[1]):'-'; }
+    return '<select data-action="lic_field" data-field="'+field+'">'+o+'</select>'; }
+  function numf(field,val){ return canEdit?'<input type="number" min="0" value="'+(val||0)+'" data-action="lic_field" data-field="'+field+'" style="width:70px;padding:6px 8px;border:1px solid var(--line);border-radius:8px">':(val||0); }
+  function datef(field,val){ return '<input type="date" id="'+field+'" value="'+esc(val||"")+'" '+(canEdit?'data-action="lic_field" data-field="'+field+'"':'disabled')+' style="padding:6px 8px;border:1px solid var(--line);border-radius:8px">'; }
+  var stv=[["ok",T("vstat_ok")],["ng",T("vstat_ng")],["pending",T("vstat_pending")]];
+  var dstv=[["ok",T("vstat_ok")],["retry",T("st_doing")],["pending",T("vstat_pending")]];
+
+  // 最終結果
+  var fr=[["notyet",T("notyet")],["inprog",T("fr_inprog")],["acquired",T("fr_acquired")],["giveup",T("fr_giveup")]];
+  var finalP='<div class="panel"><div class="panel-head"><h3>'+T("mod_license")+' — '+T("lic_final")+'</h3><span class="spacer"></span>'+finalBadge(l.final_result)+'</div>'+
+    '<dl class="kv"><dt>'+T("lic_final")+'</dt><dd>'+sel("final_result",l.final_result,fr)+'</dd></dl></div>';
+
+  // STEP1 事前審査
+  var step1='<div class="panel"><div class="panel-head"><h3>'+T("lic_step1")+'</h3></div><dl class="kv">'+
+    '<dt>'+T("lic_docstatus")+'</dt><dd>'+sel("s1_doc_status",l.s1_doc_status,stv)+'</dd>'+
+    '<dt>'+T("lic_docdefect")+'</dt><dd>'+numf("s1_doc_defects",l.s1_doc_defects)+'</dd>'+
+    '<dt>'+T("lic_depth")+'</dt><dd>'+sel("s1_depth_status",l.s1_depth_status,dstv)+'</dd>'+
+    '<dt>'+T("lic_depthretry")+'</dt><dd>'+numf("s1_depth_retries",l.s1_depth_retries)+'</dd>'+
+    '</dl></div>';
+
+  // STEP2 学科
+  var wa=(l.written_attempts||[]);
+  var wrows=wa.map(function(a){ var sc=parseInt(a.score,10); var pass=(a.result==="pass")||(sc>=45);
+    var b=pass?'<span class="badge b-ok">'+T("pass")+'</span>':'<span class="badge b-bad">'+T("fail")+'</span>';
+    return '<div class="tl-item"><div class="tl-date">'+esc(a.date)+'</div><div>'+b+' <b>'+esc(a.score||"-")+T("lic_score50")+'</b> <span class="note">'+esc(a.note||"")+'</span></div></div>';}).join("");
+  var waddf=canEdit?'<div class="add-row"><input type="date" id="w_d"><input type="number" id="w_s" placeholder="'+T("lic_score50")+'" style="width:100px"><input id="w_n" placeholder="'+T("note")+'"><button data-action="written_add">'+T("add")+'</button></div>':'';
+  var step2='<div class="panel"><div class="panel-head"><h3>'+T("lic_step2")+'</h3></div><div class="timeline">'+(wrows||'<div class="empty">'+T("noData")+'</div>')+'</div>'+waddf+'</div>';
+
+  // 対策アプリ + 模擬試験
   var freq=l.app_freq||0; var fcls=l.app_installed?(freq>=3?"b-ok":(freq>=1?"b-warn":"b-bad")):"b-bad";
-  var appCard='<div class="panel-head" style="border-top:1px solid var(--line)"><h3>'+T("lic_apptool")+'</h3>'+
-      '<span class="spacer"></span><span class="badge '+fcls+'">'+(l.app_installed?T("used"):T("notused"))+'</span></div>'+
+  var appCard='<div class="panel"><div class="panel-head"><h3>'+T("lic_apptool")+'</h3><span class="spacer"></span><span class="badge '+fcls+'">'+(l.app_installed?T("used"):T("notused"))+'</span></div>'+
     '<dl class="kv">'+
-      '<dt>'+T("lic_installed")+'</dt><dd>'+ (canEdit?
-        '<select data-action="lic_field" data-field="app_installed"><option value="1"'+(l.app_installed?" selected":"")+'>'+T("yes")+'</option><option value="0"'+(!l.app_installed?" selected":"")+'>'+T("no")+'</option></select>'
-        : (l.app_installed?T("yes"):T("no")))+'</dd>'+
-      '<dt>'+T("lic_freq")+'</dt><dd>'+ (canEdit?
-        '<input type="number" min="0" max="7" value="'+freq+'" data-action="lic_field" data-field="app_freq" style="width:70px;padding:6px 8px;border:1px solid var(--line);border-radius:8px"> '+T("times_week")
-        : freq+T("times_week"))+'</dd>'+
-      '<dt>'+T("lic_lastused")+'</dt><dd>'+inp("app_lastused",l.app_lastused,"date")+'</dd>'+
+      '<dt>'+T("lic_installed")+'</dt><dd>'+sel("app_installed",l.app_installed?"1":"0",[["1",T("yes")],["0",T("no")]])+'</dd>'+
+      '<dt>'+T("lic_freq")+'</dt><dd>'+numf("app_freq",freq)+' '+T("times_week")+'</dd>'+
+      '<dt>'+T("lic_lastused")+'</dt><dd>'+datef("app_lastused",l.app_lastused)+'</dd>'+
     '</dl>';
-  // mocks (課題②: 模擬試験結果の記録)
   var mocks=(l.mocks||[]);
   var mrows=mocks.map(function(m){ var p=Math.round(m.score/m.total*100); var cls=barClass(p);
-    return '<div class="tl-item"><div class="tl-date">'+esc(m.date)+'</div><div style="flex:1"><div class="attend-cell">'+
-      '<div class="bar '+cls+'" style="width:140px"><i style="width:'+p+'%"></i></div><span>'+m.score+'/'+m.total+'</span></div></div></div>';}).join("");
-  var addMock = canEdit ? '<div class="add-row"><input type="date" id="mk_d">'+
-    '<input type="number" id="mk_s" placeholder="'+T("score")+'" style="width:90px"> / '+
-    '<input type="number" id="mk_t" placeholder="'+T("total")+'" value="10" style="width:90px">'+
-    '<button data-action="mock_add">'+T("lic_addmock")+'</button></div>' : '';
-  return '<div class="panel"><div class="panel-head"><h3>'+T("mod_license")+'</h3><span class="spacer"></span>'+licBadge(l)+'</div>'+
-    dates+appCard+
-    '<div class="panel-head" style="border-top:1px solid var(--line)"><h3>'+T("lic_mock")+'</h3></div>'+
-    '<div class="timeline">'+(mrows||'<div class="empty">'+T("noData")+'</div>')+'</div>'+addMock+'</div>';
+    return '<div class="tl-item"><div class="tl-date">'+esc(m.date)+'</div><div style="flex:1"><div class="attend-cell"><div class="bar '+cls+'" style="width:140px"><i style="width:'+p+'%"></i></div><span>'+m.score+'/'+m.total+'</span></div></div></div>';}).join("");
+  var addMock=canEdit?'<div class="add-row"><input type="date" id="mk_d"><input type="number" id="mk_s" placeholder="'+T("score")+'" style="width:80px"> / <input type="number" id="mk_t" placeholder="'+T("total")+'" value="10" style="width:80px"><button data-action="mock_add">'+T("lic_addmock")+'</button></div>':'';
+  appCard+='<div class="panel-head" style="border-top:1px solid var(--line)"><h3 style="font-size:13px">'+T("lic_mock")+'</h3></div><div class="timeline">'+(mrows||'<div class="empty">'+T("noData")+'</div>')+'</div>'+addMock+'</div>';
+
+  // STEP3 技能 + 失敗タグ
+  var ska=(l.skill_attempts||[]);
+  var srows=ska.map(function(a){ var pts=parseInt(a.points,10); var pass=(a.result==="pass")||(pts>=70);
+    var b=pass?'<span class="badge b-ok">'+T("pass")+'</span>':'<span class="badge b-bad">'+T("fail")+'</span>';
+    var tags=(a.fails||[]).map(function(t){return '<span class="badge b-neutral">'+T("ft_"+t)+'</span>';}).join(" ");
+    return '<div class="tl-item"><div class="tl-date">'+esc(a.date)+'</div><div style="flex:1">'+b+' <b>'+esc(a.points||"-")+T("lic_points")+'</b> <span class="note">'+esc(a.note||"")+'</span>'+(tags?'<div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">'+tags+'</div>':'')+'</div></div>';}).join("");
+  var tagChecks=FAIL_TAGS.map(function(t){return '<label class="ftchk"><input type="checkbox" id="sf_'+t+'">'+T("ft_"+t)+'</label>';}).join("");
+  var saddf=canEdit?'<div class="add-row" style="flex-direction:column;align-items:stretch">'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap"><input type="date" id="s_d"><input type="number" id="s_p" placeholder="'+T("lic_points")+'" style="width:100px"><input id="s_n" placeholder="'+T("note")+'" style="flex:1;min-width:120px"></div>'+
+    '<div class="ftchk-row"><b>'+T("lic_failtags")+'</b> '+tagChecks+'</div>'+
+    '<div><button data-action="skill_add">'+T("lic_addskill")+'</button></div></div>':'';
+  var step3='<div class="panel"><div class="panel-head"><h3>'+T("lic_step3")+'</h3></div><div class="timeline">'+(srows||'<div class="empty">'+T("noData")+'</div>')+'</div>'+saddf+'</div>';
+
+  return finalP+step1+step2+appCard+step3;
 }
 
 /* ---------- module: Japanese (課題③ 最重要) ---------- */
@@ -345,10 +379,58 @@ function modProc(c){
 }
 
 /* ============================================================
+   課題管理ボード (PDCA)
+   ============================================================ */
+async function renderIssues(){
+  var issues = await DATA.getIssues();
+  window.ISSUE_CACHE={}; issues.forEach(function(i){ window.ISSUE_CACHE[i.id]=i; });
+  var canEdit = (STATE.role==="yst"||STATE.role==="fti"||STATE.role==="school");
+  // 失敗パターン頻度
+  var cands = await DATA.getCandidates();
+  var freq={}; FAIL_TAGS.forEach(function(t){freq[t]=0;});
+  cands.forEach(function(c){ var sa=(c.license&&c.license.skill_attempts)||[]; sa.forEach(function(a){ (a.fails||[]).forEach(function(t){ if(freq[t]!=null) freq[t]++; }); }); });
+  var vals=FAIL_TAGS.map(function(t){return freq[t];}); var maxf=Math.max.apply(null,[1].concat(vals));
+  var freqRows=FAIL_TAGS.filter(function(t){return freq[t]>0;}).sort(function(a,b){return freq[b]-freq[a];}).map(function(t){
+    var p=Math.round(freq[t]/maxf*100);
+    return '<div class="tl-item"><div class="tl-date" style="min-width:140px">'+T("ft_"+t)+'</div><div style="flex:1"><div class="attend-cell"><div class="bar r" style="flex:1"><i style="width:'+p+'%"></i></div><span>'+freq[t]+'</span></div></div></div>';}).join("");
+  var freqPanel='<div class="panel"><div class="panel-head"><h3>'+T("fail_freq")+'</h3></div><div class="timeline">'+(freqRows||'<div class="empty">'+T("noData")+'</div>')+'</div></div>';
+  // ボード
+  var steps=[["step1","step1"],["step2","step2"],["step3","step3"],["future","step_future"],["other","step_other"]];
+  var board=steps.map(function(st){
+    var items=issues.filter(function(i){return (i.step||"other")===st[0];});
+    if(!items.length) return "";
+    return '<div class="section-label">'+T(st[1])+'</div>'+items.map(function(i){return issueCard(i,canEdit);}).join("");
+  }).join("");
+  var addForm = canEdit ? issueAddForm() : "";
+  var head='<div class="page-head"><h2>'+T("issues_title")+'</h2><p>'+T("issues_sub")+'</p></div>';
+  APP.innerHTML = shell(freqPanel+board+addForm, head);
+}
+function issueCard(i,canEdit){
+  var ups=(i.updates||[]).map(function(u){return '<div class="tl-item"><div class="tl-date">'+esc(u.date||"")+'</div><div><b>'+esc(u.by||"")+'</b> <span class="note">'+esc(u.note||"")+'</span></div></div>';}).join("");
+  var statusCtl = canEdit ? '<select data-action="issue_status" data-id="'+i.id+'">'+["新規","対応中","対応済","監視中"].map(function(x){return '<option'+(i.status===x?" selected":"")+'>'+x+'</option>';}).join("")+'</select>' : issueStatusBadge(i.status);
+  var cm = canEdit ? '<textarea id="ic_'+i.id+'" class="iss-cm">'+esc(i.countermeasure||"")+'</textarea> <button class="mini-btn" data-action="issue_cm_save" data-id="'+i.id+'">'+T("issue_save")+'</button>' : '<div class="note">'+esc(i.countermeasure||"")+'</div>';
+  var addup = canEdit ? '<div class="add-row"><input id="iu_'+i.id+'" placeholder="'+T("issue_addupdate")+'" style="flex:1"><button data-action="issue_addupdate" data-id="'+i.id+'">'+T("add")+'</button></div>' : '';
+  return '<div class="panel"><div class="panel-head"><h3>'+esc(i.title)+'</h3><span class="spacer"></span><span class="pill">'+esc(i.owner||"")+'</span>'+statusCtl+'</div>'+
+    '<dl class="kv"><dt>'+T("issue_content")+'</dt><dd style="font-weight:400">'+esc(i.content||"")+'</dd>'+
+    '<dt>'+T("issue_impact")+'</dt><dd style="font-weight:400">'+esc(i.impact||"")+'</dd>'+
+    '<dt>'+T("issue_cm")+'</dt><dd>'+cm+'</dd></dl>'+
+    (ups?'<div class="panel-head" style="border-top:1px solid var(--line)"><h3 style="font-size:13px">'+T("issue_updates")+'</h3></div><div class="timeline">'+ups+'</div>':'')+addup+'</div>';
+}
+function issueAddForm(){
+  var steps=[["step1",T("step1")],["step2",T("step2")],["step3",T("step3")],["future",T("step_future")],["other",T("step_other")]];
+  return '<div class="panel"><div class="panel-head"><h3>'+T("issue_add")+'</h3></div><div class="add-row" style="flex-direction:column;align-items:stretch">'+
+   '<div style="display:flex;gap:8px;flex-wrap:wrap"><select id="ni_step">'+steps.map(function(x){return '<option value="'+x[0]+'">'+x[1]+'</option>';}).join("")+'</select>'+
+   '<input id="ni_title" placeholder="'+T("issue_title")+'" style="flex:1;min-width:160px"><input id="ni_owner" placeholder="'+T("issue_owner")+'" style="width:130px"></div>'+
+   '<input id="ni_content" placeholder="'+T("issue_content")+'"><input id="ni_impact" placeholder="'+T("issue_impact")+'"><input id="ni_cm" placeholder="'+T("issue_cm")+'">'+
+   '<div><button data-action="issue_add">'+T("issue_add")+'</button></div></div></div>';
+}
+
+/* ============================================================
    ROUTER
    ============================================================ */
 async function render(){
   if(STATE.view==="login") return renderLogin();
+  if(STATE.view==="issues") return renderIssues();
   if(STATE.view==="detail") return renderDetail();
   return renderDashboard();
 }
@@ -389,6 +471,14 @@ APP.addEventListener("click", async function(e){
   if(a==="open"){ STATE.detailId=el.getAttribute("data-id"); STATE.modTab="overview"; STATE.view="detail"; return renderDetail(); }
   if(a==="back"){ STATE.view="dashboard"; return renderDashboard(); }
   if(a==="tab"){ STATE.modTab=el.getAttribute("data-tab"); return renderDetail(); }
+  if(a==="gonav"){ STATE.view=el.getAttribute("data-view"); if(STATE.view==="dashboard") STATE.detailId=null; return render(); }
+  if(a==="issue_status"){ await DATA.updateIssue(el.getAttribute("data-id"),{status:el.value}); return renderIssues(); }
+  if(a==="issue_cm_save"){ var ci=el.getAttribute("data-id"); await DATA.updateIssue(ci,{countermeasure:val("ic_"+ci)}); return renderIssues(); }
+  if(a==="issue_addupdate"){ var ui=el.getAttribute("data-id"); var nt=val("iu_"+ui); if(!nt) return;
+    var cur=(window.ISSUE_CACHE||{})[ui]; var ups=(cur&&cur.updates)?cur.updates.slice():[];
+    ups.push({date:todayStr(),by:roleShort(),note:nt}); await DATA.updateIssue(ui,{updates:ups}); return renderIssues(); }
+  if(a==="issue_add"){ var nti=val("ni_title"); if(!nti) return;
+    await DATA.addIssue({step:val("ni_step"),title:nti,content:val("ni_content"),impact:val("ni_impact"),countermeasure:val("ni_cm"),owner:val("ni_owner"),status:"新規",updates:[],sort:100}); return renderIssues(); }
   var id=STATE.detailId;
   if(a==="ssw_add"){ var d=val("ssw_d"); if(!d) return;
     await pushArray(id,"ssw","attempts",{date:d,result:val("ssw_r"),score:val("ssw_s"),note:val("ssw_n")});
@@ -404,6 +494,11 @@ APP.addEventListener("click", async function(e){
   if(a==="self_add"){ var sd=val("ss_d"); if(!sd) return;
     await pushArray(id,"jp","self_study",{date:sd,minutes:parseInt(val("ss_m")||0,10),content:val("ss_c")});
     return renderDetail(); }
+  if(a==="written_add"){ var wd=val("w_d"); if(!wd) return; var ws=parseInt(val("w_s")||0,10);
+    await pushArray(id,"license","written_attempts",{date:wd,score:val("w_s"),result:(ws>=45?"pass":"fail"),note:val("w_n")}); return renderDetail(); }
+  if(a==="skill_add"){ var skd=val("s_d"); if(!skd) return; var skp=parseInt(val("s_p")||0,10);
+    var fails=FAIL_TAGS.filter(function(t){var e=document.getElementById("sf_"+t); return e&&e.checked;});
+    await pushArray(id,"license","skill_attempts",{date:skd,points:val("s_p"),result:(skp>=70?"pass":"fail"),fails:fails,note:val("s_n")}); return renderDetail(); }
 });
 
 APP.addEventListener("change", async function(e){
@@ -412,9 +507,10 @@ APP.addEventListener("change", async function(e){
   if(a==="ssw_next"){ await patchModule(id,"ssw",{next_exam:el.value}); return; }
   if(a==="prep_set"){ await patchModule(id,"jp",{prep_status:el.value}); return renderDetail(); }
   if(a==="lic_field"){ var f=el.getAttribute("data-field"); var v=el.value;
-    if(f==="app_installed") v=(v==="1"); if(f==="app_freq") v=parseInt(v||0,10);
+    if(f==="app_installed") v=(v==="1");
+    if(f==="app_freq"||f==="s1_doc_defects"||f==="s1_depth_retries") v=parseInt(v||0,10);
     var o={}; o[f]=v; await patchModule(id,"license",o);
-    if(f==="result"||f==="app_installed") return renderDetail(); return; }
+    if(/^(final_result|result|app_installed|s1_)/.test(f)) return renderDetail(); return; }
 });
 
 /* boot */

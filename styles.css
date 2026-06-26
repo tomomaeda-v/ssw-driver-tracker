@@ -107,3 +107,12 @@ tbody tr.click:hover{background:#f5f9ff}
 .auth-tabs button{flex:1;border:1.5px solid var(--line);background:var(--soft2);padding:11px;border-radius:10px;font-weight:700;font-size:13px;color:var(--muted)}
 .auth-tabs button.on{background:#eff6ff;border-color:var(--brand2);color:var(--brand)}
 .login-err{background:var(--badbg);color:var(--bad);font-size:12px;padding:10px 12px;border-radius:9px;margin-bottom:12px;line-height:1.5}
+
+/* ---------- v2: nav / issues / fail tags ---------- */
+.topnav{display:flex;gap:4px;margin-left:14px}
+.topnav button{border:1px solid rgba(255,255,255,.25);background:transparent;color:#cbd5e1;font-size:12px;font-weight:700;padding:6px 12px;border-radius:8px}
+.topnav button.on{background:#fff;color:var(--brand)}
+.ftchk{display:inline-flex;align-items:center;gap:4px;font-size:12px;margin:2px 8px 2px 0;white-space:nowrap}
+.ftchk-row{padding:8px 0;font-size:12px;display:flex;flex-wrap:wrap;gap:2px 4px;align-items:center}
+.iss-cm{width:100%;min-height:46px;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:13px;resize:vertical;box-sizing:border-box}
+.mini-btn{background:var(--brand2);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-weight:700;font-size:12px;margin-top:6px}
