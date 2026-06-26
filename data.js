@@ -113,6 +113,12 @@
       var r = await sb.auth.signInWithPassword({ email:codeToEmail(code), password:codeToPass(code) });
       return { error: r.error ? r.error.message : null };
     },
+    authSignUp: async function(email, password){
+      if(!LIVE) return {error:"not live"};
+      var r = await sb.auth.signUp({ email:String(email||"").trim(), password:password });
+      if(r.error) return { error:r.error.message };
+      return { error:null, session: !!(r.data && r.data.session) };
+    },
     authSignOut: async function(){ if(LIVE && sb) await sb.auth.signOut(); },
     getSession: async function(){ if(!LIVE) return null; var r=await sb.auth.getSession(); return r.data ? r.data.session : null; },
     // ログインユーザーの役割・範囲（app_users から）

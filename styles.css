@@ -116,3 +116,5 @@ tbody tr.click:hover{background:#f5f9ff}
 .ftchk-row{padding:8px 0;font-size:12px;display:flex;flex-wrap:wrap;gap:2px 4px;align-items:center}
 .iss-cm{width:100%;min-height:46px;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:13px;resize:vertical;box-sizing:border-box}
 .mini-btn{background:var(--brand2);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-weight:700;font-size:12px;margin-top:6px}
+
+.login-info{background:#dbeafe;color:var(--brand);font-size:12px;padding:10px 12px;border-radius:9px;margin-bottom:12px;line-height:1.6}

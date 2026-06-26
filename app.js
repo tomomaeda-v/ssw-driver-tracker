@@ -72,30 +72,46 @@ async function renderDemoLogin(){
    '</div></div>';
 }
 
-/* ---------- 認証ログイン（本番） ---------- */
+/* ---------- 認証ログイン（本番・役割別導線） ---------- */
 async function renderLogin(){
   if(!DATA.isLive()) return renderDemoLogin();
-  var tab = STATE.authTab||'email';
+  var lg=(new URLSearchParams(location.search).get("login")||"staff").toLowerCase();
+  if(lg==="self") return renderLoginSelf();
+  return renderLoginEmail(lg);
+}
+function loginShell(title, inner){
   var err = STATE.authError ? '<div class="login-err">'+esc(STATE.authError)+'</div>' : '';
-  var tabs = '<div class="auth-tabs">'+
-    '<button class="'+(tab==='email'?'on':'')+'" data-action="authtab" data-tab="email">'+T('login_admincorp')+'</button>'+
-    '<button class="'+(tab==='code'?'on':'')+'" data-action="authtab" data-tab="code">'+T('login_self')+'</button></div>';
-  var form;
-  if(tab==='email'){
-    form = '<div class="field"><label>'+T('email')+'</label><input id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com"></div>'+
-           '<div class="field"><label>'+T('password')+'</label><input id="loginPass" type="password" autocomplete="current-password"></div>'+
-           '<button class="btn-primary" data-action="authemail">'+T('enter')+'</button>';
-  } else {
-    form = '<div class="field"><label>'+T('login_code')+'</label><input id="loginCode" type="password" autocomplete="off" placeholder="••••••••"></div>'+
-           '<button class="btn-primary" data-action="authcode">'+T('enter')+'</button>';
-  }
-  APP.innerHTML =
-   '<div class="login-wrap"><div class="login-card">'+
-     '<h1>'+T('appName')+'</h1>'+
+  var info = STATE.authInfo ? '<div class="login-info">'+esc(STATE.authInfo)+'</div>' : '';
+  return '<div class="login-wrap"><div class="login-card">'+
+     '<h1>'+esc(title)+'</h1>'+
      '<p class="sub">'+(window.APP_CONFIG.ORG_NAME||"")+'</p>'+
-     tabs + err + form +
+     err + info + inner +
      '<div><span class="mode-badge mode-live">'+T('liveMode')+'</span></div>'+
    '</div></div>';
+}
+function renderLoginEmail(lg){
+  var titles={company:T('login_company_title'),school:T('login_school_title'),admin:T('login_staff_title'),staff:T('login_staff_title'),yst:T('login_staff_title'),fti:T('login_staff_title')};
+  var title=titles[lg]||T('login_staff_title');
+  var mode=STATE.authMode||'login';
+  var tabs='<div class="auth-tabs">'+
+    '<button class="'+(mode==='login'?'on':'')+'" data-action="authmode" data-mode="login">'+T('tab_login')+'</button>'+
+    '<button class="'+(mode==='signup'?'on':'')+'" data-action="authmode" data-mode="signup">'+T('tab_signup')+'</button></div>';
+  var form;
+  if(mode==='signup'){
+    form='<div class="field"><label>'+T('email')+'</label><input id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com"></div>'+
+         '<div class="field"><label>'+T('password')+'</label><input id="loginPass" type="password" autocomplete="new-password" placeholder="'+T('signup_pwhint')+'"></div>'+
+         '<button class="btn-primary" data-action="authsignup">'+T('signup_btn')+'</button>';
+  } else {
+    form='<div class="field"><label>'+T('email')+'</label><input id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com"></div>'+
+         '<div class="field"><label>'+T('password')+'</label><input id="loginPass" type="password" autocomplete="current-password"></div>'+
+         '<button class="btn-primary" data-action="authemail">'+T('enter')+'</button>';
+  }
+  APP.innerHTML=loginShell(title, tabs+form);
+}
+function renderLoginSelf(){
+  var form='<div class="field"><label>'+T('login_code')+'</label><input id="loginCode" type="password" autocomplete="off" placeholder="••••••••"></div>'+
+           '<button class="btn-primary" data-action="authcode">'+T('enter')+'</button>';
+  APP.innerHTML=loginShell(T('login_self_title'), form);
 }
 async function afterLogin(){
   var p = await DATA.getMyProfile();
@@ -454,10 +470,14 @@ async function pushArray(id,key,arrField,item){
 APP.addEventListener("click", async function(e){
   var el=e.target.closest("[data-action]"); if(!el) return;
   var a=el.getAttribute("data-action");
-  if(a==="authtab"){ STATE.authTab=el.getAttribute("data-tab"); STATE.authError=null; return renderLogin(); }
-  if(a==="authemail"){ STATE.authError=null; var er=await DATA.authSignInEmail(val("loginEmail"), val("loginPass"));
+  if(a==="authmode"){ STATE.authMode=el.getAttribute("data-mode"); STATE.authError=null; STATE.authInfo=null; return renderLogin(); }
+  if(a==="authemail"){ STATE.authError=null; STATE.authInfo=null; var er=await DATA.authSignInEmail(val("loginEmail"), val("loginPass"));
     if(er.error){ STATE.authError=T("login_failed"); return renderLogin(); } return afterLogin(); }
-  if(a==="authcode"){ STATE.authError=null; var ec=await DATA.authSignInCode(val("loginCode"));
+  if(a==="authsignup"){ STATE.authError=null; STATE.authInfo=null; var sr=await DATA.authSignUp(val("loginEmail"), val("loginPass"));
+    if(sr.error){ STATE.authError=sr.error; return renderLogin(); }
+    if(sr.session){ return afterLogin(); }
+    STATE.authMode="login"; STATE.authInfo=T("signup_done"); return renderLogin(); }
+  if(a==="authcode"){ STATE.authError=null; STATE.authInfo=null; var ec=await DATA.authSignInCode(val("loginCode"));
     if(ec.error){ STATE.authError=T("login_failed"); return renderLogin(); } return afterLogin(); }
   if(a==="role"){ STATE.role=el.getAttribute("data-role");
     STATE.lang = (STATE.role==="fti"||STATE.role==="self")?"id":"ja"; return renderLogin(); }
