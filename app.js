@@ -135,9 +135,11 @@ function shell(inner, head){
   var nav="";
   if(STATE.role==="yst"||STATE.role==="fti"||STATE.role==="school"){
     var onDash=(STATE.view==="dashboard"||STATE.view==="detail");
+    var accBtn = ((STATE.role==="yst"||STATE.role==="fti") && DATA.isLive())
+      ? '<button class="'+(STATE.view==="accounts"?"on":"")+'" data-action="gonav" data-view="accounts">'+T("nav_accounts")+'</button>' : '';
     nav='<div class="topnav">'+
       '<button class="'+(onDash?"on":"")+'" data-action="gonav" data-view="dashboard">'+T("nav_dash")+'</button>'+
-      '<button class="'+(STATE.view==="issues"?"on":"")+'" data-action="gonav" data-view="issues">'+T("nav_issues")+'</button></div>';
+      '<button class="'+(STATE.view==="issues"?"on":"")+'" data-action="gonav" data-view="issues">'+T("nav_issues")+'</button>'+accBtn+'</div>';
   }
   return '<div class="topbar"><span class="logo">🚚 '+T("appName")+'</span>'+
       '<span class="role-tag">'+roleLabel+'</span>'+nav+'<span class="spacer"></span>'+
@@ -442,11 +444,64 @@ function issueAddForm(){
 }
 
 /* ============================================================
+   ACCOUNTS (yst/fti のみ) — メール認証なしで新規アカウント発行
+   ============================================================ */
+async function renderAccounts(){
+  if(STATE.role!=="yst" && STATE.role!=="fti"){ STATE.view="dashboard"; return renderDashboard(); }
+  var companies=await DATA.getCompanies();
+  var cands=await DATA.getCandidates({});
+  var users=await DATA.listAppUsers();
+  var compMap={}; companies.forEach(function(c){compMap[c.id]=c.name;});
+  var candMap={}; cands.forEach(function(c){candMap[c.id]=c.name_ja||c.name_id||c.id;});
+
+  var role=STATE.accRole||"company";
+  var roleOpts=[["company",T("role_company")],["self",T("role_self")],["yst",T("role_yst")],["fti",T("role_fti")]]
+    .map(function(o){return '<option value="'+o[0]+'"'+(role===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join("");
+  var compOpts=companies.map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+'</option>';}).join("");
+  var candOpts=cands.map(function(c){return '<option value="'+c.id+'">'+esc(c.name_ja||c.name_id||c.id)+'</option>';}).join("");
+
+  var msg = STATE.accMsg ? '<div class="login-info">'+esc(STATE.accMsg)+'</div>' : '';
+  var err = STATE.accErr ? '<div class="login-err">'+esc(STATE.accErr)+'</div>' : '';
+
+  var form='<div class="field"><label>'+T("acc_role")+'</label><select id="ac_role" data-action="acc_role">'+roleOpts+'</select></div>';
+  if(role==="self"){
+    form+='<div class="field"><label>'+T("acc_code")+'</label><input id="ac_code" autocomplete="off" placeholder="'+T("acc_code_ph")+'"></div>'+
+          '<div class="field"><label>'+T("acc_candidate")+'</label><select id="ac_candidate">'+candOpts+'</select></div>';
+  } else {
+    form+='<div class="field"><label>'+T("email")+'</label><input id="ac_email" type="email" autocomplete="off" placeholder="name@example.com"></div>'+
+          '<div class="field"><label>'+T("password")+'</label><input id="ac_pass" type="text" autocomplete="off" placeholder="'+T("signup_pwhint")+'"></div>'+
+          (role==="company" ? '<div class="field"><label>'+T("acc_company")+'</label><select id="ac_company">'+compOpts+'</select></div>' : '');
+  }
+  form+='<div class="field"><label>'+T("acc_note")+'</label><input id="ac_note" autocomplete="off"></div>'+
+        '<button class="btn-primary" data-action="acc_create">'+T("acc_create")+'</button>';
+
+  var newPanel='<div class="panel"><div class="panel-head"><h3>'+T("acc_new")+'</h3></div>'+
+    '<div class="panel-body" style="max-width:460px">'+msg+err+form+
+    '<p style="font-size:11px;color:#6b7280;margin-top:10px;line-height:1.6">'+T("acc_hint")+'</p></div></div>';
+
+  var roleLabels={yst:T("role_yst"),fti:T("role_fti"),company:T("role_company"),self:T("role_self")};
+  var rows=users.map(function(u){
+    var scope = u.role==="company" ? esc(compMap[u.company_id]||u.company_id||"")
+              : u.role==="self" ? esc(candMap[u.candidate_id]||u.candidate_id||"") : "—";
+    return '<tr><td>'+esc(u.email)+'</td><td>'+esc(roleLabels[u.role]||u.role)+'</td><td>'+scope+'</td><td>'+esc(u.note||"")+'</td>'+
+      '<td><button data-action="acc_del" data-email="'+esc(u.email)+'">'+T("acc_del")+'</button></td></tr>';
+  }).join("");
+  var listPanel='<div class="panel"><div class="panel-head"><h3>'+T("acc_list")+' ('+users.length+')</h3></div>'+
+    '<div class="panel-body" style="overflow-x:auto"><table><thead><tr>'+
+    '<th>'+T("email")+'</th><th>'+T("acc_role")+'</th><th>'+T("acc_scope")+'</th><th>'+T("acc_note")+'</th><th></th></tr></thead>'+
+    '<tbody>'+(rows||'<tr><td colspan="5" class="empty">'+T("noData")+'</td></tr>')+'</tbody></table></div></div>';
+
+  var head='<div class="page-head"><h2>'+T("acc_title")+'</h2><p>'+T("acc_sub")+'</p></div>';
+  APP.innerHTML = shell(newPanel+listPanel, head);
+}
+
+/* ============================================================
    ROUTER
    ============================================================ */
 async function render(){
   if(STATE.view==="login") return renderLogin();
   if(STATE.view==="issues") return renderIssues();
+  if(STATE.view==="accounts") return renderAccounts();
   if(STATE.view==="detail") return renderDetail();
   return renderDashboard();
 }
@@ -491,7 +546,35 @@ APP.addEventListener("click", async function(e){
   if(a==="open"){ STATE.detailId=el.getAttribute("data-id"); STATE.modTab="overview"; STATE.view="detail"; return renderDetail(); }
   if(a==="back"){ STATE.view="dashboard"; return renderDashboard(); }
   if(a==="tab"){ STATE.modTab=el.getAttribute("data-tab"); return renderDetail(); }
-  if(a==="gonav"){ STATE.view=el.getAttribute("data-view"); if(STATE.view==="dashboard") STATE.detailId=null; return render(); }
+  if(a==="gonav"){ STATE.view=el.getAttribute("data-view"); if(STATE.view==="dashboard") STATE.detailId=null; STATE.accMsg=null; STATE.accErr=null; return render(); }
+  if(a==="acc_create"){
+    STATE.accMsg=null; STATE.accErr=null;
+    var arole=STATE.accRole||"company";
+    var aemail, apass, rec={role:arole, company_id:null, candidate_id:null, note:(val("ac_note")||null)};
+    if(arole==="self"){
+      var acode=String(val("ac_code")||"").trim().toLowerCase();
+      if(acode.length<6){ STATE.accErr=T("acc_err_code"); return renderAccounts(); }
+      aemail=DATA.codeToEmail(acode); apass=acode;
+      rec.candidate_id=val("ac_candidate")||null;
+    } else {
+      aemail=String(val("ac_email")||"").trim().toLowerCase(); apass=val("ac_pass");
+      if(!aemail || !apass || apass.length<6){ STATE.accErr=T("acc_err_required"); return renderAccounts(); }
+      if(arole==="company") rec.company_id=val("ac_company")||null;
+    }
+    rec.email=aemail;
+    var cr=await DATA.adminCreateUser(aemail, apass);
+    if(cr.error && !cr.already){ STATE.accErr=cr.error; return renderAccounts(); }
+    var ur=await DATA.upsertAppUser(rec);
+    if(ur.error){ STATE.accErr=ur.error; return renderAccounts(); }
+    if(cr.already){ STATE.accMsg=T("acc_linked"); }
+    else if(cr.confirmed){ STATE.accMsg=T("acc_created"); }
+    else { STATE.accMsg=T("acc_created_unconfirmed"); }
+    return renderAccounts(); }
+  if(a==="acc_del"){ var demail=el.getAttribute("data-email");
+    if(!confirm(T("acc_del_confirm")+"\n"+demail)) return;
+    var dr=await DATA.deleteAppUser(demail);
+    if(dr.error){ STATE.accErr=dr.error; } else { STATE.accMsg=T("acc_deleted"); STATE.accErr=null; }
+    return renderAccounts(); }
   if(a==="issue_status"){ await DATA.updateIssue(el.getAttribute("data-id"),{status:el.value}); return renderIssues(); }
   if(a==="issue_cm_save"){ var ci=el.getAttribute("data-id"); await DATA.updateIssue(ci,{countermeasure:val("ic_"+ci)}); return renderIssues(); }
   if(a==="issue_addupdate"){ var ui=el.getAttribute("data-id"); var nt=val("iu_"+ui); if(!nt) return;
@@ -524,6 +607,7 @@ APP.addEventListener("click", async function(e){
 APP.addEventListener("change", async function(e){
   var el=e.target.closest("[data-action]"); if(!el) return;
   var a=el.getAttribute("data-action"); var id=STATE.detailId;
+  if(a==="acc_role"){ STATE.accRole=el.value; STATE.accMsg=null; STATE.accErr=null; return renderAccounts(); }
   if(a==="ssw_next"){ await patchModule(id,"ssw",{next_exam:el.value}); return; }
   if(a==="prep_set"){ await patchModule(id,"jp",{prep_status:el.value}); return renderDetail(); }
   if(a==="lic_field"){ var f=el.getAttribute("data-field"); var v=el.value;

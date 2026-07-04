@@ -119,6 +119,38 @@
       if(r.error) return { error:r.error.message };
       return { error:null, session: !!(r.data && r.data.session) };
     },
+    // 本人コード → 認証メール変換（アカウント管理画面用）
+    codeToEmail: codeToEmail,
+    // 管理者用: 自分のセッションを維持したまま新規ユーザーを作成
+    // （Supabase側で「Confirm email」をOFFにしておくと、メール認証なしで即ログイン可能なアカウントになります）
+    adminCreateUser: async function(email, password){
+      if(!LIVE) return {error:"not live"};
+      var tmp = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY,
+        { auth:{ persistSession:false, autoRefreshToken:false, detectSessionInUrl:false } });
+      var r = await tmp.auth.signUp({ email:String(email||"").trim().toLowerCase(), password:password });
+      if(r.error){
+        var already = /already|registered|exists/i.test(r.error.message||"");
+        return { error:r.error.message, already:already };
+      }
+      try{ await tmp.auth.signOut(); }catch(e){}
+      return { error:null, confirmed: !!(r.data && r.data.session) };
+    },
+    // app_users（役割・範囲の対応表）の管理 ※yst/fti のRLSポリシーが必要（admin_users.sql）
+    listAppUsers: async function(){
+      if(!LIVE) return [];
+      var r = await sb.from("app_users").select("email,role,company_id,candidate_id,note").order("email");
+      return r.data||[];
+    },
+    upsertAppUser: async function(u){
+      if(!LIVE) return {error:"not live"};
+      var r = await sb.from("app_users").upsert(u, { onConflict:"email" });
+      return { error: r.error ? r.error.message : null };
+    },
+    deleteAppUser: async function(email){
+      if(!LIVE) return {error:"not live"};
+      var r = await sb.from("app_users").delete().eq("email", email);
+      return { error: r.error ? r.error.message : null };
+    },
     authSignOut: async function(){ if(LIVE && sb) await sb.auth.signOut(); },
     getSession: async function(){ if(!LIVE) return null; var r=await sb.auth.getSession(); return r.data ? r.data.session : null; },
     // ログインユーザーの役割・範囲（app_users から）
