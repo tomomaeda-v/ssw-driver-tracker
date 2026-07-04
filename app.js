@@ -74,7 +74,7 @@ async function renderDemoLogin(){
 
 /* ---------- 認証ログイン（本番・役割別導線） ---------- */
 async function renderLogin(){
-  if(!DATA.isLive()) return renderDemoLogin();
+  if(!DATA.isLive() || window.APP_CONFIG.AUTH_DISABLED) return renderDemoLogin();
   var lg=(new URLSearchParams(location.search).get("login")||"staff").toLowerCase();
   if(lg==="self") return renderLoginSelf();
   return renderLoginEmail(lg);
@@ -135,7 +135,7 @@ function shell(inner, head){
   var nav="";
   if(STATE.role==="yst"||STATE.role==="fti"||STATE.role==="school"){
     var onDash=(STATE.view==="dashboard"||STATE.view==="detail");
-    var accBtn = ((STATE.role==="yst"||STATE.role==="fti") && DATA.isLive())
+    var accBtn = ((STATE.role==="yst"||STATE.role==="fti") && DATA.isLive() && !window.APP_CONFIG.AUTH_DISABLED)
       ? '<button class="'+(STATE.view==="accounts"?"on":"")+'" data-action="gonav" data-view="accounts">'+T("nav_accounts")+'</button>' : '';
     nav='<div class="topnav">'+
       '<button class="'+(onDash?"on":"")+'" data-action="gonav" data-view="dashboard">'+T("nav_dash")+'</button>'+
@@ -537,7 +537,7 @@ APP.addEventListener("click", async function(e){
   if(a==="role"){ STATE.role=el.getAttribute("data-role");
     STATE.lang = (STATE.role==="fti"||STATE.role==="self")?"id":"ja"; return renderLogin(); }
   if(a==="lang"){ STATE.lang=el.getAttribute("data-lang"); return render(); }
-  if(a==="logout"){ if(DATA.isLive()) await DATA.authSignOut();
+  if(a==="logout"){ if(DATA.isLive() && !window.APP_CONFIG.AUTH_DISABLED) await DATA.authSignOut();
     STATE.view="login"; STATE.role=null; STATE.detailId=null; STATE.companyId=null; STATE.candidateId=null; STATE.modTab="overview"; STATE.authError=null; return renderLogin(); }
   if(a==="login"){
     if(STATE.role==="self") STATE.candidateId=val("selUser");
@@ -619,7 +619,7 @@ APP.addEventListener("change", async function(e){
 
 /* boot */
 async function boot(){
-  if(DATA.isLive()){
+  if(DATA.isLive() && !window.APP_CONFIG.AUTH_DISABLED){
     var sesh = await DATA.getSession();
     if(sesh){ return afterLogin(); }
   }
