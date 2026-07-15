@@ -75,7 +75,17 @@ window.I18N = {
     lic_step3:"STEP③ 技能試験（100点・70点で合格）", lic_skill_attempts:"技能 受験履歴", lic_addskill:"技能結果を追加", lic_points:"点/100", lic_failtags:"主な不合格理由（複数可）",
     lic_final:"最終結果", fr_acquired:"免許取得", fr_giveup:"断念", fr_inprog:"進行中",
     ft_gyakuso:"逆走", ft_sakamichi:"坂道後退", ft_dasharin:"脱輪(クランク/S字)", ft_sokudo:"速度不足", ft_ichiji:"一時停止不備", ft_gear:"ギア操作ミス", ft_kihon:"基本動作忘れ", ft_anzen:"安全不確認(目視)", ft_enst:"エンスト", ft_fumikiri:"踏切停止ミス",
-    fail_freq:"技能 失敗パターン頻度", vstat_ok:"OK", vstat_ng:"不備あり", vstat_pending:"未"
+    fail_freq:"技能 失敗パターン頻度", vstat_ok:"OK", vstat_ng:"不備あり", vstat_pending:"未",
+    mod_pipeline:"パイプライン", f_batch:"期",
+    ci_candidate_info:"候補者情報", ci_company_info:"企業情報", ci_contacts:"企業担当者",
+    ci_area:"エリア", ci_features:"特徴", ci_vehicles:"保有車両", ci_hp:"HP", ci_country:"国", ci_meeting_date:"商談日", ci_followup:"フォロー", ci_contract_date:"契約日", ci_headcount:"人数", ci_recruit_start:"募集開始", ci_resume:"履歴書", ci_applicants:"応募者数", ci_iv_practice:"面接(練習)", ci_iv_real:"面接(本番)", ci_offer_planned:"内定予定人数", ci_jr_condition:"求人票(条件)", ci_jr_housing:"求人票(住居)", ci_jr_flight:"求人票(航空券)",
+    p_offer:"① 内定・契約", p_docs:"② 資格・書類", p_coe:"③ COE・在留資格", p_prep:"④ 入国準備", p_work:"⑤ 入国・就労", p_gaimen:"⑥ 外免・在留変更", p_note:"備考",
+    pf_offer_date:"内定日", pf_contract:"契約", pf_billing:"請求", pf_mtg3:"3社MTG",
+    pf_local_license:"現地免許クラス", pf_ssw_pass:"SSW合格", pf_passport:"旅券申請", pf_health:"健康診断", pf_statement:"ステートメントレター/書類", pf_employ_cond:"雇用条件書",
+    pf_tk_apply:"特定活動 申請", pf_coe_apply:"COE申請", pf_coe_issue:"COE発行", pf_zairyu_permit:"在留資格許可",
+    pf_entry_hope:"入国希望日", pf_entry_est:"入国目安", pf_flight:"航空券", pf_housing:"宿舎手配", pf_guidance:"事前ガイダンス", pf_guidance_sim:"事前ガイダンス(SIM/印)", pf_entry_plan:"入国予定日",
+    pf_entered:"入国済み", pf_work_start:"入職予定日",
+    pf_gaimen_apply:"外免 申請", pf_gaimen_written:"外免 学科", pf_gaimen_skill:"外免 技能", pf_driving_school:"教習所", pf_license:"運転免許", pf_zairyu_change_apply:"在留資格変更 申請", pf_zairyu_change_permit:"変更 許可", pf_note:"備考"
   },
   id:{
     appName:"Manajemen Progres Sopir SSW", login:"Masuk", selectRole:"Pilih peran",
@@ -142,7 +152,17 @@ window.I18N = {
     lic_step3:"STEP③ Ujian praktik (100・lulus 70)", lic_skill_attempts:"Riwayat ujian praktik", lic_addskill:"Tambah hasil praktik", lic_points:"poin/100", lic_failtags:"Alasan tidak lulus (boleh banyak)",
     lic_final:"Hasil akhir", fr_acquired:"SIM diperoleh", fr_giveup:"Menyerah", fr_inprog:"Berlangsung",
     ft_gyakuso:"Lawan arah", ft_sakamichi:"Mundur tanjakan", ft_dasharin:"Keluar jalur(crank/S)", ft_sokudo:"Kurang kecepatan", ft_ichiji:"Stop tak penuh", ft_gear:"Salah gigi", ft_kihon:"Lupa dasar(sabuk)", ft_anzen:"Kurang cek aman", ft_enst:"Mesin mati", ft_fumikiri:"Stop rel kereta",
-    fail_freq:"Frekuensi pola gagal praktik", vstat_ok:"OK", vstat_ng:"Ada cacat", vstat_pending:"Belum"
+    fail_freq:"Frekuensi pola gagal praktik", vstat_ok:"OK", vstat_ng:"Ada cacat", vstat_pending:"Belum",
+    mod_pipeline:"Pipeline", f_batch:"Angkatan",
+    ci_candidate_info:"Info kandidat", ci_company_info:"Info perusahaan", ci_contacts:"PIC perusahaan",
+    ci_area:"Area", ci_features:"Ciri", ci_vehicles:"Kendaraan", ci_hp:"HP", ci_country:"Negara", ci_meeting_date:"Tgl meeting", ci_followup:"Follow-up", ci_contract_date:"Tgl kontrak", ci_headcount:"Jumlah", ci_recruit_start:"Mulai rekrut", ci_resume:"CV", ci_applicants:"Pelamar", ci_iv_practice:"Wawancara(latihan)", ci_iv_real:"Wawancara(asli)", ci_offer_planned:"Rencana diterima", ci_jr_condition:"Lowongan(syarat)", ci_jr_housing:"Lowongan(tempat tinggal)", ci_jr_flight:"Lowongan(tiket)",
+    p_offer:"① Diterima・Kontrak", p_docs:"② Kualifikasi・Dokumen", p_coe:"③ COE・Izin tinggal", p_prep:"④ Persiapan masuk", p_work:"⑤ Masuk・Kerja", p_gaimen:"⑥ Konversi SIM・Ubah izin", p_note:"Catatan",
+    pf_offer_date:"Tgl diterima", pf_contract:"Kontrak", pf_billing:"Tagihan", pf_mtg3:"MTG 3 pihak",
+    pf_local_license:"Kelas SIM lokal", pf_ssw_pass:"Lulus SSW", pf_passport:"Ajukan paspor", pf_health:"Cek kesehatan", pf_statement:"Surat pernyataan/dok", pf_employ_cond:"Surat kondisi kerja",
+    pf_tk_apply:"Ajukan Tokutei Katsudo", pf_coe_apply:"Ajukan COE", pf_coe_issue:"COE terbit", pf_zairyu_permit:"Izin tinggal",
+    pf_entry_hope:"Tgl harapan masuk", pf_entry_est:"Perkiraan masuk", pf_flight:"Tiket", pf_housing:"Tempat tinggal", pf_guidance:"Panduan awal", pf_guidance_sim:"Panduan(SIM/cap)", pf_entry_plan:"Rencana masuk",
+    pf_entered:"Sudah masuk", pf_work_start:"Tgl mulai kerja",
+    pf_gaimen_apply:"Konversi SIM ajukan", pf_gaimen_written:"SIM teori", pf_gaimen_skill:"SIM praktik", pf_driving_school:"Sekolah mengemudi", pf_license:"SIM Jepang", pf_zairyu_change_apply:"Ubah izin tinggal ajukan", pf_zairyu_change_permit:"Ubah izin disetujui", pf_note:"Catatan"
   }
 };
 window.t = function(key){ var L=window.STATE&&window.STATE.lang||'ja'; return (I18N[L]&&I18N[L][key])||(I18N.ja[key])||key; };

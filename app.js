@@ -225,13 +225,14 @@ async function renderDetail(){
   var companies=await DATA.getCompanies();
   if(!c){ STATE.view="dashboard"; return renderDashboard(); }
   var canEdit = (STATE.role==="yst"||STATE.role==="fti"||STATE.role==="school");
-  var tabs=[["overview","mod_overview"],["ssw","mod_ssw"],["license","mod_license"],
+  var tabs=[["overview","mod_overview"],["pipeline","mod_pipeline"],["ssw","mod_ssw"],["license","mod_license"],
             ["jp","mod_jp"],["proc","mod_proc"]];
   var tabHtml='<div class="mod-tabs">'+tabs.map(function(x){
     return '<button class="'+(STATE.modTab===x[0]?"on":"")+'" data-action="tab" data-tab="'+x[0]+'">'+T(x[1])+'</button>';}).join("")+'</div>';
 
   var body="";
   if(STATE.modTab==="overview") body=modOverview(c,companies);
+  else if(STATE.modTab==="pipeline") body=modPipeline(c,canEdit);
   else if(STATE.modTab==="ssw") body=modSSW(c,canEdit);
   else if(STATE.modTab==="license") body=modLicense(c,canEdit);
   else if(STATE.modTab==="jp") body=modJP(c,canEdit);
@@ -245,20 +246,49 @@ async function renderDetail(){
   APP.innerHTML = shell('<div class="panel">'+tabHtml+'</div>'+body, head);
 }
 
-/* ---------- module: overview ---------- */
+/* ---------- module: overview（候補者＋企業マスタ） ---------- */
+function COMP_FIELDS(){ return ["area","features","vehicles","hp","country","meeting_date","followup","contract_date","headcount","recruit_start","resume","applicants","iv_practice","iv_real","offer_planned","jr_condition","jr_housing","jr_flight"]; }
 function modOverview(c,companies){
   function row(k,v){ return '<dt>'+k+'</dt><dd>'+esc(v||"-")+'</dd>'; }
-  var jft=c.jft||{};
-  return '<div class="detail-grid">'+
-    '<div class="panel"><div class="panel-head"><h3>'+T("mod_overview")+'</h3></div>'+
-      '<dl class="kv">'+
-        row(T("f_name_id"),c.name_id)+ row(T("f_company"),companyName(companies,c.company_id))+
-        row(T("f_intake"),c.intake_date)+ row(T("f_entry"),c.entry_date)+
-      '</dl></div>'+
-    '<div class="panel"><div class="panel-head"><h3>'+T("mod_jft")+'</h3>'+
-        '<span class="spacer"></span><span class="badge b-ok">'+T("pass")+'</span></div>'+
-      '<dl class="kv">'+ row("Level",jft.level)+ row(T("ssw_score"),jft.score)+ row(T("date"),jft.date)+'</dl></div>'+
-   '</div>';
+  var canEdit=(STATE.role==="yst"||STATE.role==="fti"||STATE.role==="school");
+  var comp=(companies||[]).find(function(x){return x.id===c.company_id;})||{};
+  var info=comp.info||{}; var contacts=comp.contacts||[];
+  // 候補者情報
+  var candPanel='<div class="panel"><div class="panel-head"><h3>'+T("ci_candidate_info")+'</h3></div><dl class="kv">'+
+    row(T("f_name_id"),c.name_id)+ row(T("f_company"),comp.name||companyName(companies,c.company_id))+
+    row(T("f_batch"),c.batch)+ row(T("f_intake"),c.intake_date)+ row(T("f_entry"),c.entry_date)+'</dl></div>';
+  // 企業情報（管理者は編集可・info jsonbへ保存）
+  function ci(field){ var v=info[field]||"";
+    var inp = canEdit ? '<input value="'+esc(v)+'" data-action="comp_field" data-cid="'+esc(comp.id||"")+'" data-field="'+field+'" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--line);border-radius:8px">' : (esc(v)||"-");
+    return '<dt>'+T("ci_"+field)+'</dt><dd>'+inp+'</dd>'; }
+  var compRows=COMP_FIELDS().map(ci).join("");
+  var compPanel='<div class="panel"><div class="panel-head"><h3>'+T("ci_company_info")+'</h3><span class="spacer"></span><span class="pill">'+esc(comp.name||"")+'</span></div><dl class="kv">'+compRows+'</dl></div>';
+  // 担当者
+  var crows=contacts.map(function(u){return '<tr><td class="name-cell">'+esc(u.name||"")+'</td><td>'+esc(u.role||"")+'</td><td>'+esc(u.email||"")+'</td></tr>';}).join("");
+  var contactPanel='<div class="panel"><div class="panel-head"><h3>'+T("ci_contacts")+' ('+contacts.length+')</h3></div><div class="panel-body" style="overflow-x:auto"><table><tbody>'+(crows||'<tr><td class="empty">'+T("noData")+'</td></tr>')+'</tbody></table></div></div>';
+  return '<div class="detail-grid">'+candPanel+compPanel+'</div>'+contactPanel;
+}
+
+/* ---------- module: パイプライン（全工程） ---------- */
+var PIPE_PHASES=[
+  ["p_offer",["offer_date","contract","billing","mtg3"]],
+  ["p_docs",["local_license","ssw_pass","passport","health","statement","employ_cond"]],
+  ["p_coe",["tk_apply","coe_apply","coe_issue","zairyu_permit"]],
+  ["p_prep",["entry_hope","entry_est","flight","housing","guidance","guidance_sim","entry_plan"]],
+  ["p_work",["entered","work_start"]],
+  ["p_gaimen",["gaimen_apply","gaimen_written","gaimen_skill","driving_school","license","zairyu_change_apply","zairyu_change_permit"]],
+  ["p_note",["note"]]
+];
+function modPipeline(c,canEdit){
+  var p=c.pipeline||{};
+  return PIPE_PHASES.map(function(ph){
+    var rows=ph[1].map(function(k){
+      var v=p[k]||"";
+      var inp = canEdit ? '<input value="'+esc(v)+'" data-action="pipe_field" data-field="'+k+'" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--line);border-radius:8px">' : (esc(v)||'<span class="note">-</span>');
+      return '<dt>'+T("pf_"+k)+'</dt><dd>'+inp+'</dd>';
+    }).join("");
+    return '<div class="panel"><div class="panel-head"><h3>'+T(ph[0])+'</h3></div><dl class="kv">'+rows+'</dl></div>';
+  }).join("");
 }
 
 /* ---------- module: SSW (課題①) ---------- */
@@ -608,6 +638,11 @@ APP.addEventListener("change", async function(e){
   var el=e.target.closest("[data-action]"); if(!el) return;
   var a=el.getAttribute("data-action"); var id=STATE.detailId;
   if(a==="acc_role"){ STATE.accRole=el.value; STATE.accMsg=null; STATE.accErr=null; return renderAccounts(); }
+  if(a==="pipe_field"){ var pf=el.getAttribute("data-field"); var cc=await DATA.getCandidate(id);
+    var pl=Object.assign({},cc.pipeline||{}); pl[pf]=el.value; await DATA.updateCandidate(id,{pipeline:pl}); return; }
+  if(a==="comp_field"){ var cfd=el.getAttribute("data-field"); var cid=el.getAttribute("data-cid"); if(!cid) return;
+    var comps=await DATA.getCompanies(); var cobj=comps.find(function(x){return x.id===cid;})||{};
+    var inf=Object.assign({},cobj.info||{}); inf[cfd]=el.value; await DATA.updateCompany(cid,{info:inf}); return; }
   if(a==="ssw_next"){ await patchModule(id,"ssw",{next_exam:el.value}); return; }
   if(a==="prep_set"){ await patchModule(id,"jp",{prep_status:el.value}); return renderDetail(); }
   if(a==="lic_field"){ var f=el.getAttribute("data-field"); var v=el.value;

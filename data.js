@@ -202,6 +202,11 @@
       if(LIVE){ await sb.from("candidates").update(patch).eq("id",id); return; }
       var c=demoDB.candidates.find(function(x){return x.id===id;});
       if(c){ Object.assign(c,patch); saveDemo(demoDB); }
+    },
+    updateCompany: async function(id, patch){
+      if(LIVE){ await sb.from("companies").update(patch).eq("id",id); return; }
+      var c=demoDB.companies.find(function(x){return x.id===id;});
+      if(c){ Object.assign(c,patch); saveDemo(demoDB); }
     }
   };
 })();
