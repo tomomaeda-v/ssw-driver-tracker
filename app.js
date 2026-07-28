@@ -162,7 +162,25 @@ async function renderDashboard(){
   if(role==="self"){ STATE.detailId=STATE.candidateId; STATE.view="detail"; return renderDetail(); }
 
   var subKey = role==="fti"?"dash_sub_fti":(role==="company"?"dash_sub_company":"dash_sub_yst");
-  var head='<div class="page-head"><h2>'+T("dash_overview")+'</h2><p>'+T(subKey)+'</p></div>';
+  var canAdd=(role==="yst"||role==="fti");
+  var addBtn = canAdd ? '<button class="btn-primary" data-action="addcand_toggle" style="margin-top:10px">'+(STATE.showAddCand?T("nc_cancel"):T("nc_add"))+'</button>' : '';
+  var head='<div class="page-head"><h2>'+T("dash_overview")+'</h2><p>'+T(subKey)+'</p>'+addBtn+'</div>';
+
+  // 新規人材の追加フォーム
+  var addForm="";
+  if(canAdd && STATE.showAddCand){
+    var compOpts='<option value="">'+T("nc_company_none")+'</option>'+companies.map(function(co){
+      return '<option value="'+esc(co.id)+'">'+esc(co.name||co.id)+'</option>';}).join("");
+    var ncErr = STATE.addCandErr ? '<div class="login-err">'+esc(STATE.addCandErr)+'</div>' : '';
+    addForm='<div class="panel"><div class="panel-head"><h3>'+T("nc_title")+'</h3></div><div class="panel-body">'+ncErr+
+      '<div class="field"><label>'+T("nc_name_id")+'</label><input id="nc_name_id" placeholder="Agus Santoso"></div>'+
+      '<div class="field"><label>'+T("nc_name_ja")+'</label><input id="nc_name_ja" placeholder="アグス・サントソ"></div>'+
+      '<div class="field"><label>'+T("nc_company")+'</label><select id="nc_company">'+compOpts+'</select></div>'+
+      '<div class="field"><label>'+T("nc_status")+'</label><select id="nc_status">'+
+        '<option value="pre">'+T("st_pre")+'</option><option value="injp">'+T("st_injp")+'</option><option value="work">'+T("st_work")+'</option></select></div>'+
+      '<div class="field"><label>'+T("nc_batch")+'</label><input id="nc_batch" placeholder="2期"></div>'+
+      '<button class="btn-primary" data-action="addcand_save">'+T("nc_save")+'</button></div></div>';
+  }
 
   // KPIs
   var total=cands.length;
@@ -214,7 +232,7 @@ async function renderDashboard(){
       '<th>'+T("h_license")+'</th><th>'+T("h_app")+'</th></tr></thead>'+
       '<tbody>'+(rows||'<tr><td colspan="8" class="empty">'+T("noData")+'</td></tr>')+'</tbody></table></div></div>';
 
-  APP.innerHTML = shell(banner+kpiHtml+table, head);
+  APP.innerHTML = shell(banner+addForm+kpiHtml+table, head);
 }
 
 /* ============================================================
@@ -612,6 +630,19 @@ APP.addEventListener("click", async function(e){
     ups.push({date:todayStr(),by:roleShort(),note:nt}); await DATA.updateIssue(ui,{updates:ups}); return renderIssues(); }
   if(a==="issue_add"){ var nti=val("ni_title"); if(!nti) return;
     await DATA.addIssue({step:val("ni_step"),title:nti,content:val("ni_content"),impact:val("ni_impact"),countermeasure:val("ni_cm"),owner:val("ni_owner"),status:"新規",updates:[],sort:100}); return renderIssues(); }
+  if(a==="addcand_toggle"){ STATE.showAddCand=!STATE.showAddCand; STATE.addCandErr=null; return renderDashboard(); }
+  if(a==="addcand_save"){
+    var nid=String(val("nc_name_id")||"").trim(), nja=String(val("nc_name_ja")||"").trim();
+    if(!nid && !nja){ STATE.addCandErr=T("nc_err_name"); return renderDashboard(); }
+    var allc=await DATA.getCandidates(); var maxn=0;
+    allc.forEach(function(c){ var m=/^D(\d+)$/.exec(c.id||""); if(m){ var n=parseInt(m[1],10); if(n>maxn) maxn=n; } });
+    var newId="D"+String(maxn+1).replace(/^(\d)$/,"00$1").replace(/^(\d\d)$/,"0$1");
+    var rec={ id:newId, name_id:(nid||nja), name_ja:(nja||nid), company_id:(val("nc_company")||null),
+      status:(val("nc_status")||"pre"), batch:(val("nc_batch")||"") };
+    var rr=await DATA.addCandidate(rec);
+    if(rr.error){ STATE.addCandErr=T("nc_err_save")+rr.error; return renderDashboard(); }
+    STATE.showAddCand=false; STATE.addCandErr=null;
+    STATE.detailId=newId; STATE.modTab="overview"; STATE.view="detail"; return renderDetail(); }
   var id=STATE.detailId;
   if(a==="ssw_add"){ var d=val("ssw_d"); if(!d) return;
     await pushArray(id,"ssw","attempts",{date:d,result:val("ssw_r"),score:val("ssw_s"),note:val("ssw_n")});

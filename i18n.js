@@ -41,6 +41,11 @@ window.I18N = {
     h_action:"操作", h_freq:"使用頻度", h_mock:"模擬試験",
     // status values
     st_pre:"入国前", st_injp:"入国後(特定活動)", st_work:"稼働中",
+    // 新規人材追加
+    nc_add:"＋新規人材", nc_cancel:"キャンセル", nc_title:"新規人材の追加",
+    nc_name_id:"氏名（ローマ字）", nc_name_ja:"氏名（日本語・カナ）", nc_company:"受入れ企業",
+    nc_company_none:"（未選択）", nc_status:"ステータス", nc_batch:"期（任意）", nc_save:"追加する",
+    nc_err_name:"氏名を入力してください。", nc_err_save:"追加に失敗しました：",
     pass:"合格", fail:"不合格", notyet:"未受験", inprog:"対策中", done:"完了", applied:"申請済",
     attended:"出席", absent:"欠席", used:"使用", notused:"未使用", reported:"本人報告",
     // modules
@@ -124,6 +129,11 @@ window.I18N = {
     h_date:"Tanggal", h_reason:"Alasan", h_attend:"Hadir", h_minutes:"Menit", h_content:"Materi",
     h_action:"Aksi", h_freq:"Frekuensi", h_mock:"Ujian simulasi",
     st_pre:"Sebelum berangkat", st_injp:"Setelah masuk(Tokutei Katsudo)", st_work:"Bekerja",
+    // Tambah kandidat baru
+    nc_add:"＋Kandidat baru", nc_cancel:"Batal", nc_title:"Tambah kandidat baru",
+    nc_name_id:"Nama (romaji)", nc_name_ja:"Nama (Jepang/Kana)", nc_company:"Perusahaan penerima",
+    nc_company_none:"(Belum dipilih)", nc_status:"Status", nc_batch:"Batch (opsional)", nc_save:"Tambah",
+    nc_err_name:"Silakan masukkan nama.", nc_err_save:"Gagal menambahkan: ",
     pass:"Lulus", fail:"Tidak lulus", notyet:"Belum ujian", inprog:"Persiapan", done:"Selesai", applied:"Sudah ajukan",
     attended:"Hadir", absent:"Absen", used:"Dipakai", notused:"Belum dipakai", reported:"Lapor sendiri",
     mod_overview:"Info dasar", mod_jft:"JFT", mod_ssw:"SSW(Ujian SSW)", mod_license:"Konversi SIM", mod_jp:"Belajar Bhs Jepang", mod_proc:"Prosedur masuk",

@@ -198,6 +198,10 @@
       if(LIVE){ await sb.from("issues").update(patch).eq("id",id); return; }
       var x=demoIssues.find(function(i){return i.id===id;}); if(x){ Object.assign(x,patch); saveIssues(demoIssues); }
     },
+    addCandidate: async function(rec){
+      if(LIVE){ var r=await sb.from("candidates").insert(rec); return { error: r.error?r.error.message:null }; }
+      demoDB.candidates.push(rec); saveDemo(demoDB); return { error:null };
+    },
     updateCandidate: async function(id, patch){
       if(LIVE){ await sb.from("candidates").update(patch).eq("id",id); return; }
       var c=demoDB.candidates.find(function(x){return x.id===id;});
